@@ -1,0 +1,111 @@
+
+    // 点击头像
+    function showAction() {
+        api.actionSheet({
+            title: '上传图片',
+            cancelTitle: '取消',
+            buttons: ['拍照', '从手机相册选择']
+        }, function (ret, err) {
+            if (ret) {
+                getPicture(ret.buttonIndex);
+            }
+        });X
+    }
+
+    // 调用哪个选项
+    function getPicture(sourceType) {
+        if (sourceType == 1) { // 拍照
+            api.getPicture({
+                sourceType: 'camera',
+                encodingType: 'jpg',
+                mediaValue: 'pic',
+                allowEdit: false,
+                destinationType: 'url',
+                quality: 100,
+                targetWidth: 200,
+                targetHeight: 200,
+                saveToPhotoAlbum: true
+            }, function (ret, err) {
+                console.log(JSON.stringify(ret));
+                console.log(JSON.stringify(err));
+                console.log(ret);
+                if (ret["data"] == "" || ret["data"] == null) {
+                    return;
+                } else if (ret["data"] != null) {
+                    $api.dom("#myImg").src = ret.data;//图片链接
+                    isImgValidate = true;
+                    doUploadHeadIcon(ret.data)
+                }
+            });
+        } else if (sourceType == 2) { // 从相机中选择
+            api.getPicture({
+                sourceType: 'library',
+                encodingType: 'jpg',
+                mediaValue: 'pic',
+                destinationType: 'url',
+                quality: 100,
+                targetWidth: 200,
+                targetHeight: 200
+            }, function (ret, err) {
+                if (ret) {
+                    $api.dom("#myImg").src = ret.data;//图片链接
+                    isImgValidate = true;
+                    doUploadHeadIcon(ret.data)
+                }
+            });
+        } else {
+            return;
+        }
+    }
+
+    //上传个人头像
+    function doUploadHeadIcon(avatar) {
+        showProgress('提示', '图片上传中...');
+        // TODO: 上传个人照片
+        API.files.uploadImg(userId, avatar,$api.getStorage(CURRENT_USER)["token"], function (ret, err) {
+            if (!globalException(err)) {
+                return;
+            }
+
+            fileData = {
+                fileName: ret["object"]["originalName"],
+                url: ret["object"]["url"],
+                size: ret["object"]["size"],
+                fileType: ret["object"]["type"],
+                businessId: userId
+            };
+
+            console.log(JSON.stringify(ret));
+            if (ret["msgCode"] == 1) {
+                hideProgress();
+            }
+        })
+    }
+----------------------------------------------------------------
+files: {
+        /**
+         * 上传个人头像
+         * @param userId 用户id
+         * @param file 图片
+         * @param token 秘钥
+         * @param callback
+         */
+        uploadImg:function(userId, file, token, callback) {
+            api.ajax({
+                url: SYS_CONF.DOMAIN + '/api/base/files/upload',
+                method: 'post',
+                data: {
+                    files: {//图片链接上传
+                        Fdata: file
+                    },
+                    values: {//上传参数
+                        "packageName": "headIcon",
+                        "userId": userId,
+                    }
+                },
+                headers: {Authorization: token},
+            }, function (ret, err) {
+                callback(ret, err);
+            });
+        }
+    },
